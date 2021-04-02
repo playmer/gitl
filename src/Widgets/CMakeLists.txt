@@ -1,0 +1,11 @@
+target_sources(gitl
+PRIVATE
+    ClassTableFilter.cpp
+    ClassTableFilter.hpp
+    ClickableCommit.cpp
+    ClickableCommit.hpp
+    CommitView.cpp
+    CommitView.hpp
+    FileView.cpp
+    FileView.hpp
+)

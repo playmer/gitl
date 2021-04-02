@@ -1,0 +1,9 @@
+[submodule "deps/toolwindowmanager"]
+	path = deps/toolwindowmanager
+	url = https://github.com/playmer/toolwindowmanager.git
+[submodule "deps/cppgit2"]
+	path = deps/cppgit2
+	url = https://github.com/playmer/cppgit2.git
+[submodule "deps/optick"]
+	path = deps/optick
+	url = https://github.com/bombomby/optick.git
