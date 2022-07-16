@@ -2,8 +2,6 @@
 
 #include "Models/CommitFilesModel.hpp"
 
-#include "cppgit2/repository.hpp"
-
 namespace gitl {
     CommitFilesModel::CommitFilesModel(QObject *parent) : QAbstractTableModel(parent)
     {

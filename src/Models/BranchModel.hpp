@@ -2,9 +2,6 @@
 #include <QModelIndex>
 #include <QObject>
 #pragma once
-#include "cppgit2/commit.hpp"
-#include "cppgit2/reference.hpp"
-#include "cppgit2/tag.hpp"
 
 namespace gitl {
     enum class BranchOrTagType

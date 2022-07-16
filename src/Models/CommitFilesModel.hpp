@@ -5,9 +5,6 @@
 #include <QObject>
 #include <QVariant>
 
-#include "cppgit2/diff.hpp"
-#include "cppgit2/commit.hpp"
-
 namespace gitl {
     struct FileDelta
     {

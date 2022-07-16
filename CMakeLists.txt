@@ -1,6 +1,23 @@
 cmake_minimum_required(VERSION 3.19.0 FATAL_ERROR) 
+
+# install vcpkg into our project
+include(FetchContent)
+FetchContent_Declare(
+    vcpkg
+    GIT_REPOSITORY "https://github.com/microsoft/vcpkg.git"
+    GIT_TAG "68b7fec22eb5fd9c0236b1e42b3c0deb8e771b37" # 2022-05-07
+)
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    FetchContent_Populate(vcpkg)
+    set(CMAKE_TOOLCHAIN_FILE "${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake")
+endif()
+
 project(gitl VERSION 1.0.0 LANGUAGES CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
+
+find_package(Qt6 CONFIG REQUIRED)
+find_package(Qt6Widgets CONFIG REQUIRED)
+
 
 set(DepsDir ${CMAKE_CURRENT_LIST_DIR}/deps)
 

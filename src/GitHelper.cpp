@@ -4,8 +4,6 @@
 #include <QProcess>
 #include <QObject>
 
-#include "cppgit2/pathspec.hpp"
-
 #include "GitHelper.hpp"
 
 #include "Models/BranchModel.hpp"
@@ -203,8 +201,6 @@ namespace gitl
 
     std::pair<std::vector<CommitData>, QString> GetCommitData(QString aInitialPath, QStringList aPathFilters)
     {
-        using namespace cppgit2;
-
         GitCommitsProcess process(aInitialPath, aPathFilters);
 
         process.WaitForFinished();
@@ -236,11 +232,6 @@ namespace gitl
         auto commitData = GetCommitData(mRepoPath, mPathSpec);
 
         model.populateData(std::move(commitData.first), std::move(commitData.second));
-    }
-
-    void Git::PopulateData(CommitModel& model, cppgit2::reference& aBranchOrTagRef)
-    {
-        //mRepository.
     }
 
     Git::~Git()

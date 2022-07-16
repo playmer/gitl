@@ -1,7 +1,5 @@
 #include <QDateTime>
 
-#include "cppgit2/repository.hpp"
-
 #include "Models/CommitModel.hpp"
 
 namespace gitl {

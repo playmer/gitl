@@ -1,16 +1,8 @@
 add_executable(gitl)
 
-if (CMAKE_SYSTEM_NAME STREQUAL Windows)
-  # Find the QtWidgets library
-  set(QtPath $ENV{QtPath})
-  if(NOT QtPath) 
-    message(FATAL_ERROR "Please define the environment variable `Qt` with the path to Qt 5.9.0 - i.e. export Qt = C:/Qt/5.9")
-  endif()
-
-  set(CMAKE_PREFIX_PATH ${QtPath}/msvc2019_64/)
-endif()
-
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
+
+#target_link_libraries(main PRIVATE Qt::Widgets Qt6::Widgets Qt::WidgetsPrivate Qt6::WidgetsPrivate)
 
 target_link_libraries(gitl 
   PUBLIC 

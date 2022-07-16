@@ -4,8 +4,6 @@
 #include <QObject>
 #include <QModelIndex>
 
-#include "cppgit2/commit.hpp"
-
 namespace gitl {
     struct CommitData
     {

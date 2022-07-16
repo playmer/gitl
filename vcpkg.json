@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "gitl",
+    "version": "0.15.2",
+    "dependencies": [
+      {
+        "name": "qtbase",
+        "default-features": false,
+        "features": [ "widgets" ]
+      }
+    ]
+  }
