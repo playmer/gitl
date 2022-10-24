@@ -4,9 +4,10 @@
     "version": "0.15.2",
     "dependencies": [
       {
-        "name": "qtbase",
-        "default-features": false,
-        "features": [ "widgets" ]
-      }
+          "name": "qtbase",
+          "features": [ "vulkan" ]
+      },
+      "qt-advanced-docking-system",
+      "tiny-process-library"
     ]
   }

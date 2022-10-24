@@ -4,6 +4,8 @@
 #include <QProcess>
 #include <QObject>
 
+#include "process.hpp"
+
 #include "GitHelper.hpp"
 
 #include "Models/BranchModel.hpp"
@@ -139,14 +141,28 @@ namespace gitl
     Git::Git(QString aInitialPath, QStringList aPathFilters)
         : mPathSpec{aPathFilters}
     {
+        //std::wstring initialPath = aInitialPath.toStdWString();
         std::string initialPath = aInitialPath.toUtf8().toStdString();
 
-        auto repoPath = cppgit2::repository::discover_path(initialPath);
+        std::string repoPath;
 
-        if (false == repoPath.HasResult())
-            return;
+        TinyProcessLib::Process process1a("git rev-parse --show-toplevel", initialPath, [&repoPath](const char *bytes, size_t n) {
+            repoPath = std::string(bytes, n);
+        });
+        auto exit_status=process1a.get_exit_status();
 
-        mRepoPath = repoPath.Result().c_str();
+        //auto repoPath = cppgit2::repository::discover_path(initialPath);
+
+        //if (false == repoPath.HasResult())
+        //    return;
+        auto index = repoPath.find("\n");
+
+        if (index != std::string::npos)
+        {
+            repoPath.erase(index, 1);
+        }
+
+        mRepoPath = repoPath.c_str();
         
         std::vector<std::string> paths;
         for (auto& path : aPathFilters)

@@ -19,8 +19,6 @@ class MainWindow;
 
 class LimitTextDelegate : public QStyledItemDelegate
 {
-    Q_OBJECT
-
 public:
     LimitTextDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
 
