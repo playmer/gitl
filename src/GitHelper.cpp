@@ -4,7 +4,7 @@
 #include <QProcess>
 #include <QObject>
 
-#include "process.hpp"
+#include "ProcessHelper.hpp"
 
 #include "GitHelper.hpp"
 
@@ -30,6 +30,7 @@ namespace gitl
         std::pair<size_t, size_t> Body;
     };
 
+    /*
     class GitCommitsProcess : public QObject
     {
     public:
@@ -135,7 +136,7 @@ namespace gitl
         QProcess* mProcess;
         QStringView mIterator;
     };
-
+    */
 
 
     Git::Git(QString aInitialPath, QStringList aPathFilters)
@@ -217,30 +218,108 @@ namespace gitl
 
     std::pair<std::vector<CommitData>, QString> GetCommitData(QString aInitialPath, QStringList aPathFilters)
     {
-        GitCommitsProcess process(aInitialPath, aPathFilters);
-
-        process.WaitForFinished();
-
-        std::vector<CommitData> commitData;
-        commitData.reserve(process.mCommitIndexes.size());
         
-        for (auto& indexes : process.mCommitIndexes)
+        QString fullData;
+        QStringView iterator;
+        
+        fullData.reserve(1024 * 1024 * 50);
+        iterator = QStringView(fullData.begin(), fullData.end());
+        std::vector<CommitDataIndexes> commitIndexes;
+
+        std::string command = "git log \"--pretty=tformat:START_OF_GITL_COMMIT_DATA_REQUEST:%H\t%P\t%an\t%ae\t%at\t%cn\t%ce\t%ct\t%s\t\n%b\" --";
+
+        auto tryParse = [&commitIndexes, &fullData, &iterator]()
+        {
+            const auto startOfCommit = iterator.indexOf(cRequestStart);
+            const auto endOfOid = iterator.indexOf('\t', startOfCommit + cRequestStartSize);
+            const auto endOfParents = iterator.indexOf('\t', endOfOid + 1);
+            const auto endOfAuthorName = iterator.indexOf('\t', endOfParents + 1);
+            const auto endOfAuthorEmail = iterator.indexOf('\t', endOfAuthorName + 1);
+            const auto endOfAuthorDate = iterator.indexOf('\t', endOfAuthorEmail + 1);
+            const auto endOfCommitterName = iterator.indexOf('\t', endOfAuthorDate + 1);
+            const auto endOfCommitterEmail = iterator.indexOf('\t', endOfCommitterName + 1);
+            const auto endOfCommitterDate = iterator.indexOf('\t', endOfCommitterEmail + 1);
+            const auto endOfSummary = iterator.indexOf('\n', endOfCommitterDate + 1);
+            auto endOfBody = iterator.indexOf(cRequestStart, endOfCommitterDate + 1);
+
+            if (-1 == endOfBody)
+                endOfBody = iterator.size();
+
+            auto const iteratorBeginIndex = iterator.begin() - fullData.begin();
+                        
+            commitIndexes.emplace_back(
+                std::pair<size_t, size_t>(iteratorBeginIndex + cRequestStartSize - 1  , iteratorBeginIndex + endOfOid),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfOid           , iteratorBeginIndex + endOfParents),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfParents       , iteratorBeginIndex + endOfAuthorName),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfAuthorName    , iteratorBeginIndex + endOfAuthorEmail),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfAuthorEmail   , iteratorBeginIndex + endOfAuthorDate),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfAuthorDate    , iteratorBeginIndex + endOfCommitterName),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfCommitterName , iteratorBeginIndex + endOfCommitterEmail),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfCommitterEmail, iteratorBeginIndex + endOfCommitterDate),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfCommitterDate , iteratorBeginIndex + endOfSummary - 1),
+                std::pair<size_t, size_t>(iteratorBeginIndex + 1 + endOfSummary       , iteratorBeginIndex + endOfBody)
+            );
+
+            
+            iterator = QStringView(iterator.begin() + endOfBody, iterator.end());
+        };
+
+        TinyProcessLib::Process process1a(command, aInitialPath.toUtf8().toStdString(), [&fullData, &iterator, &tryParse](const char *bytes, size_t n) {
+            // Reconstruct the iterator since we need to read data into the store.
+            auto iteratorIndex = iterator.begin() - fullData.begin();
+            auto view = QString::fromUtf8(bytes, n);
+            fullData.append(view);
+            iterator = QStringView(fullData.begin() + iteratorIndex, fullData.end());
+
+            while (iterator.size() > cRequestStartSize && -1 != iterator.indexOf(cRequestStart, cRequestStartSize))
+                tryParse();
+
+        });
+        auto exit_status=process1a.get_exit_status();
+        
+        std::vector<CommitData> commitData;
+        
+        for (auto& indexes : commitIndexes)
         {
             commitData.emplace_back(
-                QStringView(process.mFullData.begin() + indexes.Oid.first, process.mFullData.begin() + indexes.Oid.second),
-                QStringView(process.mFullData.begin() + indexes.Parents.first, process.mFullData.begin() + indexes.Parents.second),
-                QStringView(process.mFullData.begin() + indexes.AuthorName.first, process.mFullData.begin() + indexes.AuthorName.second),
-                QStringView(process.mFullData.begin() + indexes.AuthorEmail.first, process.mFullData.begin() + indexes.AuthorEmail.second),
-                QStringView(process.mFullData.begin() + indexes.AuthorDate.first, process.mFullData.begin() + indexes.AuthorDate.second),
-                QStringView(process.mFullData.begin() + indexes.CommitterName.first, process.mFullData.begin() + indexes.CommitterName.second),
-                QStringView(process.mFullData.begin() + indexes.CommitterEmail.first, process.mFullData.begin() + indexes.CommitterEmail.second),
-                QStringView(process.mFullData.begin() + indexes.CommitterDate.first, process.mFullData.begin() + indexes.CommitterDate.second),
-                QStringView(process.mFullData.begin() + indexes.Summary.first, process.mFullData.begin() + indexes.Summary.second),
-                QStringView(process.mFullData.begin() + indexes.Body.first, process.mFullData.begin() + indexes.Body.second)
+                QStringView(fullData.begin() + indexes.Oid.first, fullData.begin() + indexes.Oid.second),
+                QStringView(fullData.begin() + indexes.Parents.first, fullData.begin() + indexes.Parents.second),
+                QStringView(fullData.begin() + indexes.AuthorName.first, fullData.begin() + indexes.AuthorName.second),
+                QStringView(fullData.begin() + indexes.AuthorEmail.first, fullData.begin() + indexes.AuthorEmail.second),
+                QStringView(fullData.begin() + indexes.AuthorDate.first, fullData.begin() + indexes.AuthorDate.second),
+                QStringView(fullData.begin() + indexes.CommitterName.first, fullData.begin() + indexes.CommitterName.second),
+                QStringView(fullData.begin() + indexes.CommitterEmail.first, fullData.begin() + indexes.CommitterEmail.second),
+                QStringView(fullData.begin() + indexes.CommitterDate.first, fullData.begin() + indexes.CommitterDate.second),
+                QStringView(fullData.begin() + indexes.Summary.first, fullData.begin() + indexes.Summary.second),
+                QStringView(fullData.begin() + indexes.Body.first, fullData.begin() + indexes.Body.second)
             );
         }
 
-        return std::pair<std::vector<CommitData>, QString>{std::move(commitData), std::move(process.mFullData)};
+
+        //GitCommitsProcess process(aInitialPath, aPathFilters);
+        //
+        //process.WaitForFinished();
+        //
+        //std::vector<CommitData> commitData;
+        //commitData.reserve(process.mCommitIndexes.size());
+        //
+        //for (auto& indexes : process.mCommitIndexes)
+        //{
+        //    commitData.emplace_back(
+        //        QStringView(process.mFullData.begin() + indexes.Oid.first, process.mFullData.begin() + indexes.Oid.second),
+        //        QStringView(process.mFullData.begin() + indexes.Parents.first, process.mFullData.begin() + indexes.Parents.second),
+        //        QStringView(process.mFullData.begin() + indexes.AuthorName.first, process.mFullData.begin() + indexes.AuthorName.second),
+        //        QStringView(process.mFullData.begin() + indexes.AuthorEmail.first, process.mFullData.begin() + indexes.AuthorEmail.second),
+        //        QStringView(process.mFullData.begin() + indexes.AuthorDate.first, process.mFullData.begin() + indexes.AuthorDate.second),
+        //        QStringView(process.mFullData.begin() + indexes.CommitterName.first, process.mFullData.begin() + indexes.CommitterName.second),
+        //        QStringView(process.mFullData.begin() + indexes.CommitterEmail.first, process.mFullData.begin() + indexes.CommitterEmail.second),
+        //        QStringView(process.mFullData.begin() + indexes.CommitterDate.first, process.mFullData.begin() + indexes.CommitterDate.second),
+        //        QStringView(process.mFullData.begin() + indexes.Summary.first, process.mFullData.begin() + indexes.Summary.second),
+        //        QStringView(process.mFullData.begin() + indexes.Body.first, process.mFullData.begin() + indexes.Body.second)
+        //    );
+        //}
+
+        return std::pair<std::vector<CommitData>, QString>{std::move(commitData), std::move(fullData)};
     }
 
     void Git::PopulateData(CommitModel& model/*, cppgit2::commit& aCommit*/)

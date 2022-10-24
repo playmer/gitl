@@ -1,5 +1,7 @@
 #include <QProcess>
 
+#include "process.hpp"
+
 #include "Models/CommitFilesModel.hpp"
 
 namespace gitl {
@@ -12,32 +14,50 @@ namespace gitl {
     {
         mFiles.clear();
 
-        QString program = "git";
-        QStringList arguments;
-
-        // TODO: Should confirm this format is correct and that we can't get extra separators in the summary.
-        arguments << "diff-tree" << "--no-commit-id" << "--name-status" << "-r" <<  aCommitId << "--";
-
-        QProcess git;
-        git.setWorkingDirectory(aRepoPath);
-        git.start(program, arguments);
         
-        if (!git.waitForStarted())
-            return;
+        std::string data;
 
-        git.closeWriteChannel();
+        std::string command = "git show --oneline --raw --name-status ";
+        command += aCommitId.toUtf8().toStdString();
+        command += " --";
 
-        if (!git.waitForFinished())
-            return;
+        TinyProcessLib::Process process1a(command, aRepoPath.toUtf8().toStdString(), [&data](const char *bytes, size_t n) {
+            data += std::string(bytes, n);
+        });
+        auto exit_status=process1a.get_exit_status();
 
-        auto exitStatus = git.exitStatus();
-        auto exitCode = git.exitCode();
+        auto stdoutResult = QString::fromStdString(data);
 
-        //QString result = QString(git.readAll());
-        auto stderrResult = QString(git.readAllStandardError());
-        auto stdoutResult = QString(git.readAllStandardOutput());
+        //QString program = "git";
+        //QStringList arguments;
+        //
+        // TODO: Should confirm this format is correct and that we can't get extra separators in the summary.
+        //arguments << "diff-tree" << "--no-commit-id" << "--name-status" << "-r" <<  aCommitId << "--";
+        //
+        //QProcess git;
+        //git.setWorkingDirectory(aRepoPath);
+        //git.start(program, arguments);
+        //
+        //if (!git.waitForStarted())
+        //    return;
+        //
+        //git.closeWriteChannel();
+        //
+        //if (!git.waitForFinished())
+        //    return;
+        //
+        //auto exitStatus = git.exitStatus();
+        //auto exitCode = git.exitCode();
+        //
+        ////QString result = QString(git.readAll());
+        //auto stderrResult = QString(git.readAllStandardError());
+        //auto stdoutResult = QString(git.readAllStandardOutput());
 
         auto iterator = QStringView(stdoutResult);
+        
+        // skip first line
+        auto endOfLine = iterator.indexOf('\n');
+        iterator = QStringView(iterator.begin() + 1 + endOfLine, iterator.end());
 
         while (iterator.size())
         {

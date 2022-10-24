@@ -36,6 +36,6 @@ namespace gitl {
         QDateTime mMinDate;
         QDateTime mMaxDate;
 
-        bool mEnable;
+        bool mEnable = false;
     };
 }
